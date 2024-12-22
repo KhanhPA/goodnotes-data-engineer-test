@@ -1,5 +1,5 @@
 from pyspark.sql import DataFrame, Window
-from pyspark.sql.functions import col, lag, unix_timestamp, from_unixtime, when, sum as _sum, min, max, count, avg, current_timestamp, concat, lit, to_date, countDistinct, year, month
+from pyspark.sql.functions import col, lag, unix_timestamp, from_unixtime, when, sum as _sum, min, max, count, avg, current_timestamp, concat, lit, to_date, countDistinct, year, month, rand, broadcast, desc
 
 
 def calculate_dau_and_mau(df: DataFrame) -> DataFrame:
@@ -106,3 +106,39 @@ def calculate_sessions(df: DataFrame) -> DataFrame:
     # session_df.explain("extended")
 
     return session_df
+
+def join_dataframe(df_1: DataFrame, df_2: DataFrame) -> DataFrame:
+    """
+    Calculate user sessions and session metrics.
+
+    Args:
+        df_1 (DataFrame): Input DataFrame with user interactions.
+        df_2 (DataFrame): Input DataFrame with user metadata.
+
+    Returns:
+        DataFrame: Joined DataFrame.
+    """
+    user_interactions_df = df_1
+    user_metadata_df = df_2
+    # user_interactions_df.groupBy("user_id").count().orderBy(desc("count")).show(50)
+
+    # Repartition the user_interaction_df by the join key to mitigate data skew
+    user_interactions_df_repartitioned = user_interactions_df.repartition(8, "user_id") 
+
+    # Salt the user_id by adding a random number
+    user_interactions_salted = user_interactions_df_repartitioned.withColumn("salt", (rand() * 10).cast("int"))
+    user_metadata_salted = user_metadata_df.withColumn("salt", (rand() * 10).cast("int"))
+
+    # Join on salted user_id
+    joined_df = user_interactions_salted.join(broadcast(user_metadata_salted), 
+                                            (user_interactions_salted.user_id == user_metadata_salted.user_id) & 
+                                            (user_interactions_salted.salt == user_metadata_salted.salt), 'inner')
+
+    # Drop salt column after join
+    joined_df = joined_df.drop("salt")
+    joined_df = joined_df.drop(user_metadata_salted["user_id"])
+
+    # Show the result
+    # joined_df.show()
+
+    return joined_df
