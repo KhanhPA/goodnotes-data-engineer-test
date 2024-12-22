@@ -1,7 +1,7 @@
 import logging
 from config.spark_config import get_spark_session
 from src.analytic_functions import calculate_sessions, calculate_dau_and_mau
-from src.utils import read_csv, write_parquet
+from src.utils import read_csv, write_parquet, read_parquet
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -13,8 +13,8 @@ def main():
         spark = get_spark_session("ProductionPipeline")
 
         # Load input data to spark to read the data
-        file_path = "data/csv/user_interactions_sample.csv"  
-        df = read_csv(spark, file_path)
+        file_path = "data/parquet/user_interactions_sample.parquet"  
+        df = read_parquet(spark, file_path)
 
         # Perform DAU/MAU calculations
         logger.info("Starting DAU/MAU calculations.")

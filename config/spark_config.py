@@ -12,4 +12,6 @@ def get_spark_session(app_name: str = "Spark Application") -> SparkSession:
     """
     return SparkSession.builder \
         .appName(app_name) \
+        .config("spark.default.parallelism", 4) \
+        .config("spark.sql.shuffle.partitions", 2) \
         .getOrCreate()

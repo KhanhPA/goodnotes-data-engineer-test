@@ -40,12 +40,12 @@ def calculate_dau_and_mau(df: DataFrame) -> DataFrame:
     )
 
     # Show the result
-    dau_df.show()
-    mau_df.show()
+    # dau_df.show()
+    # mau_df.show()
 
     # Show execution plan for future optimization
-    dau_df.explain("extended")
-    mau_df.explain("extended")
+    # dau_df.explain("extended")
+    # mau_df.explain("extended")
     
     return dau_df, mau_df
 
@@ -100,9 +100,9 @@ def calculate_sessions(df: DataFrame) -> DataFrame:
     ).orderBy("user_id")
 
     # Show the result
-    session_df.show()
+    # session_df.show()
 
     # Show execution plan for future optimization
-    session_df.explain("extended")
+    # session_df.explain("extended")
 
     return session_df
