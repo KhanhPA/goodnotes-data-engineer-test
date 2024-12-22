@@ -1,7 +1,7 @@
 import logging
 from config.spark_config import get_spark_session
 from src.analytic_functions import calculate_sessions, calculate_dau_and_mau, join_dataframe
-from src.utils import read_csv, write_parquet, read_parquet
+from src.utils import read_csv, write_parquet, read_parquet, validate_df_columns, validate_null_values, validate_unique_values
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -18,6 +18,21 @@ def main():
 
         user_interactions_df = read_parquet(spark, user_interactions_file_path)
         user_metadata_df = read_parquet(spark, user_metadata_file_path)
+
+        user_interactions_schema = ["user_id", "timestamp", "action_type", "page_id", "duration_ms"]
+        user_metadata_schema = ['user_id', 'join_date', 'country', 'device_type', 'subscription_type']
+
+        # Data quality checks
+        # Columns schema match
+        validate_df_columns(user_interactions_df, user_interactions_schema)
+        validate_df_columns(user_metadata_df, user_metadata_schema)
+
+        # Null values
+        validate_null_values(user_interactions_df, user_interactions_schema)
+        validate_null_values(user_metadata_df, user_metadata_schema)
+
+        # Unique values
+        validate_unique_values(user_metadata_df, ["user_id"])
 
         # Perform DAU/MAU calculations
         logger.info("Starting DAU/MAU calculations.")
