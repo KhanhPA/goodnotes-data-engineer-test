@@ -49,11 +49,11 @@ The repository also includes unit tests to validate the correctness of implement
 ### Installation Steps
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your_username/your_repo.git
-   cd your_repo
+   git clone https://github.com/KhanhPA/goodnotes-data-engineer-test.git
+   cd goodnotes-data-engineer-test
    ```
 
-2. Set up a virtual environment (optional):
+2. Set up a virtual environment:
    ```bash
    python3 -m venv venv
    source venv/bin/activate
@@ -62,12 +62,6 @@ The repository also includes unit tests to validate the correctness of implement
 3. Install dependencies:
    ```bash
    pip install -r requirements.txt
-   ```
-
-4. Configure environment variables for Spark (if needed):
-   ```bash
-   export PYSPARK_PYTHON=python3
-   export PYSPARK_DRIVER_PYTHON=python3
    ```
 
 ---
