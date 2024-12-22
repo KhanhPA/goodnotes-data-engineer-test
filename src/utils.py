@@ -39,3 +39,23 @@ def write_parquet(df: DataFrame, output_path: str) -> None:
     except Exception as e:
         logger.error(f"Error while writing DataFrame to Parquet at {output_path}: {str(e)}", exc_info=True)
         raise
+
+def read_parquet(spark: SparkSession, file_path: str) -> DataFrame:
+    """
+    Read a Parquet file into a DataFrame.
+
+    Args:
+        spark (SparkSession): Spark session.
+        file_path (str): Path to the Parquet file.
+
+    Returns:
+        DataFrame: Loaded DataFrame.
+    """
+    try:
+        logger.info(f"Attempting to read Parquet file from: {file_path}")
+        df = spark.read.parquet(file_path, header=True, inferSchema=True)
+        logger.info(f"Successfully read CSV Parquet with {df.count()} rows and {len(df.columns)} columns.")
+        return df
+    except Exception as e:
+        logger.error(f"Error while reading CSV Parquet from {file_path}: {str(e)}", exc_info=True)
+        raise
