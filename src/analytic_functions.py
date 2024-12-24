@@ -13,37 +13,31 @@ def calculate_dau_and_mau(df: DataFrame) -> DataFrame:
         DataFrame: DAU and MAU metrics DataFrame.
     """
 
-    # Add interaction_date and yearmonth columns
-    df = df.withColumn("interaction_date", to_date(col("timestamp"))) \
-        .withColumn("year", year(col("interaction_date"))) \
-        .withColumn("month", month(col("interaction_date")))
-
-    # Calculate Daily Active User: Group by interaction_date and count distinct users
-    dau_df = df.groupBy("interaction_date").agg(countDistinct("user_id").alias("dau"))
-
-    dau_df = dau_df.select(
-        col("interaction_date"),
-        col("dau"),
-        current_timestamp().alias("created_at"),
-        current_timestamp().alias("updated_at")
+    # Compute DAU
+    dau_df = (
+        df
+        .withColumn("interaction_date", to_date("timestamp"))
+        .groupby("interaction_date")
+        .agg(countDistinct("user_id").alias("dau"))
+        .withColumn("created_at", current_timestamp())
+        .withColumn("updated_at", current_timestamp())
     )
 
-    # Calculate Monthly Active User: Group by year and month and count distinct users
-    mau_df = df.groupBy("year", "month").agg(countDistinct("user_id").alias("mau"))
-
-    mau_df = mau_df.select(
-        col("year"),
-        col("month"),
-        col("mau"),
-        current_timestamp().alias("created_at"),
-        current_timestamp().alias("updated_at")
+    # Compute MAU
+    mau_df = (
+        df
+        .withColumn("year", year("timestamp"))
+        .withColumn("month", month("timestamp"))
+        .groupby("year", "month")
+        .agg(countDistinct("user_id").alias("mau"))
+        .withColumn("created_at", current_timestamp())
+        .withColumn("updated_at", current_timestamp())
     )
 
-    # Show the result
     # dau_df.show()
     # mau_df.show()
 
-    # Show execution plan for future optimization
+    # # Show execution plan for future optimization
     # dau_df.explain("extended")
     # mau_df.explain("extended")
     
@@ -64,16 +58,14 @@ def calculate_sessions(df: DataFrame) -> DataFrame:
 
     window_user_time = Window.partitionBy("user_id").orderBy("timestamp")
 
-    df_with_gaps = df_filtered.withColumn("previous_action_end_time", 
+    df_session_assignments = df_filtered.withColumn("previous_action_end_time", 
                                         lag("action_end_time").over(window_user_time)) \
         .withColumn("gap", 
                     when(col("previous_action_end_time").isNotNull(), 
                         unix_timestamp("timestamp") - unix_timestamp("previous_action_end_time")) \
                     .otherwise(0)) \
-                          .withColumn("is_new_session", when((col("gap") > 1200) | (col("gap") == 0), 1).otherwise(0))
-
-    df_session_assignments = df_with_gaps.withColumn("session_id", 
-        _sum("is_new_session").over(window_user_time.rowsBetween(Window.unboundedPreceding, Window.currentRow)))
+                          .withColumn("is_new_session", when((col("gap") > 1200) | (col("gap") == 0), 1).otherwise(0)) \
+                                .withColumn("session_id", _sum("is_new_session").over(window_user_time.rowsBetween(Window.unboundedPreceding, Window.currentRow)))
 
     # Calculate session durations base on duration_ms
     df_session_durations = df_session_assignments.groupBy("user_id", "session_id") \
@@ -103,7 +95,7 @@ def calculate_sessions(df: DataFrame) -> DataFrame:
     # session_df.show()
 
     # Show execution plan for future optimization
-    # session_df.explain("extended")
+    session_df.explain("extended")
 
     return session_df
 
@@ -120,26 +112,23 @@ def join_dataframe(df_1: DataFrame, df_2: DataFrame) -> DataFrame:
     """
     user_interactions_df = df_1
     user_metadata_df = df_2
-    # user_interactions_df.groupBy("user_id").count().orderBy(desc("count")).show(50)
+
+    user_interactions_df.groupBy("user_id").count().orderBy(desc("count")).show(50)
 
     # Repartition the user_interaction_df by the join key to mitigate data skew
     # user_interactions_df_repartitioned = user_interactions_df.repartition(4, "user_id") 
 
     # Salt the user_id by adding a random number
-    # user_interactions_salted = user_interactions_df.withColumn("salt", (rand() * 10).cast("int"))
-    # user_metadata_salted = user_metadata_df.withColumn("salt", (rand() * 10).cast("int"))
+    user_interactions_salted = user_interactions_df.withColumn("salt", (rand() * 10).cast("int"))
+    user_metadata_salted = user_metadata_df.withColumn("salt", (rand() * 10).cast("int"))
 
-    # # Join on salted user_id
-    # joined_df = user_interactions_salted.join(broadcast(user_metadata_salted), 
-    #                                         (user_interactions_salted.user_id == user_metadata_salted.user_id) & 
-    #                                         (user_interactions_salted.salt == user_metadata_salted.salt), 'inner')
+    # Join on salted user_id
+    joined_df = user_interactions_salted.join(broadcast(user_metadata_salted), 
+                                            (user_interactions_salted.user_id == user_metadata_salted.user_id) & 
+                                            (user_interactions_salted.salt == user_metadata_salted.salt), 'inner')
 
-    # # Drop salt column after join
-    # joined_df = joined_df.drop("salt")
-
-    joined_df = user_interactions_df.join(broadcast(user_metadata_df), 
-                                            (user_interactions_df.user_id == user_metadata_df.user_id), 'inner')
-
+    # Drop salt column after join
+    joined_df = joined_df.drop("salt")
 
     joined_df = joined_df.drop(user_metadata_df["user_id"])
 

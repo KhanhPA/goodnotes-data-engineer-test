@@ -1,6 +1,6 @@
 import logging
 from config.spark_config import get_spark_session
-from src.analytic_functions import calculate_sessions, calculate_dau_and_mau, join_dataframe
+from src.analytic_functions import calculate_sessions, calculate_dau_and_mau, join_dataframe, to_date
 from src.utils import read_csv, write_parquet, read_parquet, validate_df_columns, validate_null_values, validate_unique_values
 
 # Configure logging
@@ -36,7 +36,7 @@ def main():
 
         # Perform DAU/MAU calculations
         logger.info("Starting DAU/MAU calculations.")
-        dau_df, mau_df = calculate_dau_and_mau(user_interactions_df)
+        dau_df, mau_df = calculate_dau_and_mau(user_interactions_df.select("user_id", "timestamp"))
 
         # Write DAU/MAU analysis data to parquet file
         write_parquet(dau_df, "output/daily_active_user_analysis.parquet")

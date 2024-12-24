@@ -68,9 +68,6 @@ The repository also includes unit tests to validate the correctness of implement
 
 ## Running the Application
 
-### Input Data
-Run the data generation scripts to generate data to the desired format (csv/parquet)
-
 ### Run the Main Script
 To execute the application, run the `main.py` script:
 ```bash
