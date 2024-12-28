@@ -61,8 +61,10 @@ def main():
         logger.error(f"An error occurred in the main workflow: {str(e)}", exc_info=True)
     finally:
         logger.info("Shutting down Spark session.")
-        # spark.stop()
-        input()
+        spark.stop()
+
+        # Keep the spark session open to access Spark UI
+        # input()
 
 if __name__ == "__main__":
     main()
